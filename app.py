@@ -56,9 +56,49 @@ def login_required(fn):
     def wrapper(*a, **kw):
         if g.user is None:
             return redirect(url_for("login", next=request.path))
+        # An account still on the shared starting password reaches nothing else.
+        if g.user["must_change"] and request.endpoint != "password":
+            return redirect(url_for("password"))
         return fn(*a, **kw)
 
     return wrapper
+
+
+MIN_PASSWORD = 10
+
+
+@app.route("/password", methods=["GET", "POST"])
+@login_required
+def password():
+    forced = bool(g.user["must_change"])
+    if request.method == "POST":
+        new = request.form.get("new", "")
+        again = request.form.get("again", "")
+        current = request.form.get("current", "")
+        error = None
+        if not forced and not db.check_password(g.user["pw_hash"], current):
+            error = "Your current password is not right."
+        elif len(new) < MIN_PASSWORD:
+            error = "Use at least %d characters." % MIN_PASSWORD
+        elif new != again:
+            error = "The two new passwords do not match."
+        elif db.check_password(g.user["pw_hash"], new):
+            error = "Choose a password you have not used here before."
+
+        if error:
+            flash(error)
+        else:
+            conn = db.connect()
+            conn.execute(
+                "UPDATE users SET pw_hash = ?, must_change = 0 WHERE id = ?",
+                (db.hash_password(new), g.user["id"]),
+            )
+            db.log_audit(conn, g.user["id"], "password_change")
+            conn.commit()
+            conn.close()
+            flash("Password changed.")
+            return redirect(url_for("chat"))
+    return render_template("password.html", forced=forced, minimum=MIN_PASSWORD)
 
 
 @app.context_processor

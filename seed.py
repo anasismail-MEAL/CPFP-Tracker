@@ -218,10 +218,27 @@ def ensure():
     Called on boot so a test deployment comes up populated. On a host with an
     ephemeral disk this means every redeploy starts from fresh demo data, which is
     what a testing deployment should do -- and is why no real record may live there.
+
+    The real focal point roster is never committed. Upload it to the host as a secret
+    file and point CPFP_ROSTER at it, and the accounts are rebuilt on each boot too.
     """
     if db.DB_PATH.exists():
         return False
     main()
+
+    roster = Path(os.environ.get("CPFP_ROSTER", "/etc/secrets/roster.csv"))
+    if roster.exists():
+        import import_roster
+
+        people, rejected, _ = import_roster.validate(import_roster.load(roster))
+        conn = db.connect()
+        created, _ = import_roster.apply(
+            conn, people, os.environ.get("CPFP_START_PASSWORD", import_roster.DEFAULT_PASSWORD)
+        )
+        conn.close()
+        print("Roster: %d account(s) created, %d rejected." % (len(created), len(rejected)))
+    else:
+        print("No roster at %s -- demo accounts only." % roster)
     return True
 
 

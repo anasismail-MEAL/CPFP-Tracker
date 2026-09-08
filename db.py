@@ -120,7 +120,10 @@ CREATE TABLE IF NOT EXISTS users (
     role      TEXT NOT NULL,
     phone     TEXT,
     pw_hash   TEXT NOT NULL,
-    active    INTEGER NOT NULL DEFAULT 1
+    active    INTEGER NOT NULL DEFAULT 1,
+    -- Set for accounts created from the roster with a shared starting password.
+    -- They cannot reach any page until they choose their own.
+    must_change INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -207,7 +210,18 @@ def connect(path=None) -> sqlite3.Connection:
 
 def init_schema(conn) -> None:
     conn.executescript(SCHEMA)
+    _add_missing_columns(conn)
     conn.commit()
+
+
+def _add_missing_columns(conn) -> None:
+    """CREATE TABLE IF NOT EXISTS leaves an older table alone, so add columns here."""
+    for table, column, spec in [
+        ("users", "must_change", "INTEGER NOT NULL DEFAULT 0"),
+    ]:
+        have = {r["name"] for r in conn.execute("PRAGMA table_info(%s)" % table)}
+        if column not in have:
+            conn.execute("ALTER TABLE %s ADD COLUMN %s %s" % (table, column, spec))
 
 
 def ref_list(conn, kind) -> list:

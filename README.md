@@ -53,6 +53,39 @@ Check it still works:
 python test_app.py
 ```
 
+## Real accounts
+
+The demo accounts above exist only for demonstrating the app. Real focal point accounts come
+from the CPSS roster, which holds staff names, work emails and mobile numbers and is therefore
+**never committed**:
+
+```bash
+python import_roster.py "../CPSS_focal points list and backup_as of August_2026_ updated.xlsx"
+```
+
+That creates one account per primary and backup focal point plus the CPSS admins, signing in
+with their **email address** and a shared starting password. Re-running is safe: accounts are
+keyed on email, existing ones have their name, agency, camp and phone refreshed, and passwords
+are never touched. Add `--dry-run` to see what would happen, or `--retire-demo` to deactivate
+the demo accounts whose password is published in this file.
+
+Anyone created this way **must set their own password before reaching any page** — every route
+redirects to `/password` until they do.
+
+Camp labels are translated to the agreed list on the way in: `4E` → `Camp 4 Ext`,
+`Kutupalong RC` → `KTP`, `NYP-RC-Teknaf` → `NYP`. Rows with a missing, malformed or duplicated
+email are reported and skipped rather than guessed at; the one known roster typo is corrected
+and the correction is printed.
+
+For a deployment, write a CSV and upload it to the host as a secret file:
+
+```bash
+python import_roster.py "<roster>.xlsx" --csv-out roster.csv --dry-run
+```
+
+Point `CPFP_ROSTER` at wherever the host mounts it (default `/etc/secrets/roster.csv`) and the
+accounts are rebuilt on every boot alongside the demo data. `roster*.csv` is gitignored.
+
 ## How the data is protected
 
 Identifying details — child name, parents' names, date of birth, FCN, Progress ID, shelter
@@ -123,6 +156,8 @@ Environment variables:
 | `CPFP_SECRET` | Session signing key. Without it, everyone is signed out on each restart. |
 | `CPFP_HTTPS` | Set to `1` behind TLS so the session cookie is marked Secure. |
 | `CPFP_DEBUG` | Leave unset. Never `1` on anything reachable by others. |
+| `CPFP_ROSTER` | Path to the roster CSV secret file. Default `/etc/secrets/roster.csv`. |
+| `CPFP_START_PASSWORD` | Starting password for roster accounts. Everyone must change it on first sign-in. |
 
 Generate a proper key yourself with:
 
@@ -164,11 +199,13 @@ Until those exist, run it on the seeded synthetic data only.
 | `app.py` | Routes |
 | `reports.py` | Monthly aggregates and the Excel export |
 | `seed.py` | Reference lists, demonstration data, and `ensure()` for first boot |
+| `import_roster.py` | Creates focal point and CPSS accounts from the roster |
 | `make_reference.py` | Regenerates `reference_lists.json` from the tracker workbook |
 | `reference_lists.json` | Committed snapshot of the agreed camp/activity/stakeholder/status lists |
 | `test_app.py` | 38 assertions over encryption, access rules, audit, figures and closing a case |
 | `templates/`, `static/` | Pages, phone-first CSS, PWA manifest and service worker |
 | `requirements.txt`, `Procfile`, `render.yaml` | Deployment |
 
-Not in this repository, deliberately: the tracker workbook, the ToR, the screen recording, the
-encryption key (`.cpfp_key`) and the database (`*.sqlite3`).
+Not in this repository, deliberately: the tracker workbook, the focal point roster and any CSV
+made from it, the ToR, the screen recording, the encryption key (`.cpfp_key`) and the database
+(`*.sqlite3`).

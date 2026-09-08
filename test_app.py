@@ -202,6 +202,89 @@ check("signed-out users cannot reach the case board",
 check("signed-out users cannot reach the chat feed",
       anon.get("/api/messages").status_code == 302)
 
+print("\nForced password change")
+conn2.execute(
+    """INSERT INTO users (username, full_name, agency, camp, role, pw_hash, must_change)
+       VALUES ('new@example.org', 'New Focal', 'TestOrg', 'Camp 3', 'cpfp', ?, 1)""",
+    (db.hash_password("CpfpStart2026"),),
+)
+conn2.commit()
+
+fresh = webapp.app.test_client()
+fresh.post("/login", data={"username": "new@example.org", "password": "CpfpStart2026"})
+check("a starting-password account is pushed to /password",
+      fresh.get("/cases").headers.get("Location", "").endswith("/password"))
+check("even the chat is closed to it",
+      fresh.get("/chat").headers.get("Location", "").endswith("/password"))
+check("the password page itself is reachable", fresh.get("/password").status_code == 200)
+
+fresh.post("/password", data={"new": "short", "again": "short"})
+check("a short password is refused",
+      fresh.get("/cases").headers.get("Location", "").endswith("/password"))
+fresh.post("/password", data={"new": "a-long-enough-one", "again": "a-different-one"})
+check("mismatched passwords are refused",
+      fresh.get("/cases").headers.get("Location", "").endswith("/password"))
+fresh.post("/password", data={"new": "CpfpStart2026", "again": "CpfpStart2026"})
+check("reusing the starting password is refused",
+      fresh.get("/cases").headers.get("Location", "").endswith("/password"))
+
+fresh.post("/password", data={"new": "chosen-by-the-user", "again": "chosen-by-the-user"})
+check("a good password clears the block", fresh.get("/cases").status_code == 200)
+row = conn2.execute(
+    "SELECT * FROM users WHERE username = 'new@example.org'"
+).fetchone()
+check("must_change is cleared", row["must_change"] == 0)
+check("the new password works", db.check_password(row["pw_hash"], "chosen-by-the-user"))
+check("the old one does not", not db.check_password(row["pw_hash"], "CpfpStart2026"))
+check("the change is audited",
+      conn2.execute("SELECT COUNT(*) c FROM audit WHERE action = 'password_change'"
+                    ).fetchone()["c"] == 1)
+
+print("\nRoster import")
+import import_roster  # noqa: E402
+
+check("plain camp numbers take the prefix", import_roster.camp_name("18") == "Camp 18")
+check("4E maps to the agreed name", import_roster.camp_name("4E") == "Camp 4 Ext")
+check("Kutupalong RC maps to KTP", import_roster.camp_name("Kutupalong RC") == "KTP")
+check("NYP-RC-Teknaf maps to NYP", import_roster.camp_name("NYP-RC-Teknaf") == "NYP")
+check("a multi-number phone cell keeps the first",
+      import_roster.clean_phone("01823846880, 01515219382") == "01823846880")
+
+sample = [
+    {"full_name": "Good Person", "email": "good@example.org", "agency": "A",
+     "camp": "Camp 3", "phone": "1", "position": "primary", "role": "cpfp"},
+    {"full_name": "Typo Person", "email": "someone.example@gmail", "agency": "A",
+     "camp": "Camp 8E", "phone": "1", "position": "primary", "role": "cpfp"},
+    {"full_name": "No Email", "email": "", "agency": "A",
+     "camp": "Camp 9", "phone": "1", "position": "backup", "role": "cpfp"},
+    {"full_name": "Copycat", "email": "good@example.org", "agency": "A",
+     "camp": "Camp 10", "phone": "1", "position": "backup", "role": "cpfp"},
+]
+good, rejected, fixed = import_roster.validate(sample)
+check("a bare provider domain is corrected, not dropped",
+      fixed and good[1]["email"] == "someone.example@gmail.com")
+check("a real domain is left alone",
+      import_roster.fix_email("person@codec.org.bd") == "person@codec.org.bd")
+check("an unknown bare domain is not guessed at",
+      import_roster.fix_email("person@somecompany") == "person@somecompany")
+check("a person with no email is rejected",
+      any(r[0] == "No Email" for r in rejected))
+check("a duplicate email is rejected", any(r[0] == "Copycat" for r in rejected))
+check("valid people survive", len(good) == 2)
+
+before_users = conn2.execute("SELECT COUNT(*) c FROM users").fetchone()["c"]
+created, updated = import_roster.apply(conn2, good, "CpfpStart2026")
+check("import creates accounts", len(created) == 2)
+created2, updated2 = import_roster.apply(conn2, good, "CpfpStart2026")
+check("re-running creates nothing", len(created2) == 0 and len(updated2) == 2)
+check("no duplicate rows",
+      conn2.execute("SELECT COUNT(*) c FROM users").fetchone()["c"] == before_users + 2)
+imported = conn2.execute(
+    "SELECT * FROM users WHERE username = 'good@example.org'"
+).fetchone()
+check("imported accounts must change their password", imported["must_change"] == 1)
+check("imported accounts are focal points, not admins", imported["role"] == "cpfp")
+
 conn.close()
 conn2.close()
 print("\n%d checks passed." % checks)

@@ -18,6 +18,7 @@
   <div class="who">
     <span class="name">{{ user.full_name }}</span>
     <span class="chip">{{ user.camp or 'CPSS' }}</span>
+    <a class="out" href="{{ url_for('password') }}">Password</a>
     <a class="out" href="{{ url_for('logout') }}">Sign out</a>
   </div>
 </header>
