@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}My tasks{% endblock %}
+{% block body %}
+<h1>My daily activity</h1>
+<p class="sub">One row per action, the same columns as the CPFP Daily Activity Tracker.
+  Your monthly figures are built from these entries.</p>
+
+<div class="notice">
+  Never put a child's name, phone number or case detail here. Those belong on the
+  <a href="{{ url_for('cases') }}">Children</a> board, where they are encrypted.
+</div>
+
+<details class="card" open>
+  <summary style="font-weight:600;cursor:pointer">Record an activity</summary>
+  <form method="post">
+    <div class="row">
+      <div><label for="tdate">Date it happened</label>
+        <input id="tdate" name="tdate" type="date" value="{{ today }}" max="{{ today }}" required></div>
+      <div><label for="activity_type">Activity type</label>
+        <select id="activity_type" name="activity_type" required>
+          {% for a in activity_types %}<option>{{ a }}</option>{% endfor %}
+        </select></div>
+    </div>
+    <label for="action">Action / meeting</label>
+    <input id="action" name="action" placeholder="e.g. Camp coordination meeting with CiC" required>
+    <label for="outcome">Key action / outcome</label>
+    <textarea id="outcome" name="outcome" placeholder="One or two sentences: what happened, the key decision, what needs to happen next"></textarea>
+    <div class="row">
+      <div><label for="stakeholder">Main stakeholder</label>
+        <select id="stakeholder" name="stakeholder">
+          {% for s in stakeholders %}<option>{{ s }}</option>{% endfor %}
+        </select></div>
+      <div><label for="n_children"># Children</label>
+        <input id="n_children" name="n_children" type="number" min="0" value="0" inputmode="numeric"></div>
+      <div><label for="n_adults"># Adults</label>
+        <input id="n_adults" name="n_adults" type="number" min="0" value="0" inputmode="numeric"></div>
+    </div>
+    <div class="row">
+      <div><label for="followup">Needs follow-up?</label>
+        <select id="followup" name="followup"><option>No</option><option>Yes</option></select></div>
+      <div><label for="status">Status</label>
+        <select id="status" name="status">
+          {% for s in statuses %}<option>{{ s }}</option>{% endfor %}
+        </select></div>
+      <div><label for="next_step">Next step / due date</label>
+        <input id="next_step" name="next_step"></div>
+    </div>
+    <p></p>
+    <button class="btn">Save entry</button>
+  </form>
+</details>
+
+<h2>Recent entries</h2>
+<div class="scroll">
+  <table>
+    <thead><tr>
+      <th>Date</th><th>Activity type</th><th>Action</th><th>Stakeholder</th>
+      <th class="n">Ch.</th><th class="n">Ad.</th><th>Follow-up</th><th>Status</th>
+    </tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.tdate }}</td>
+        <td>{{ r.activity_type }}</td>
+        <td>{{ r.action }}{% if r.next_step %}<br><span class="locked">Next: {{ r.next_step }}</span>{% endif %}</td>
+        <td>{{ r.stakeholder }}</td>
+        <td class="n">{{ r.n_children }}</td>
+        <td class="n">{{ r.n_adults }}</td>
+        <td>{{ r.followup }}</td>
+        <td>{{ r.status }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8">No entries yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Children{% endblock %}
+{% block body %}
+<div class="inline" style="justify-content:space-between">
+  <div><h1>Missing &amp; found children</h1>
+  <p class="sub">{{ cases|length }} record{{ '' if cases|length == 1 else 's' }}</p></div>
+  <a class="btn" href="{{ url_for('case_new') }}">+ New report</a>
+</div>
+
+<div class="filters">
+  {% for key, label in [('active','Still open'), ('reunified','Reunified'), ('referred','Referred'), ('all','All')] %}
+    <a href="{{ url_for('cases', status=key, type=ctype) }}" class="{{ 'on' if status == key }}">{{ label }}</a>
+  {% endfor %}
+</div>
+<div class="filters">
+  {% for key, label in [('','Both kinds'), ('missing','Missing only'), ('found','Found only')] %}
+    <a href="{{ url_for('cases', status=status, type=key) }}" class="{{ 'on' if ctype == key }}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+{% for c in cases %}
+<a class="case {{ c.ctype }}" href="{{ url_for('case_detail', case_id=c.id) }}">
+  <div class="top">
+    <span class="tag t-{{ c.ctype }}">{{ c.ctype }}</span>
+    <span class="tag t-{{ c.status }}">{{ c.status.replace('_',' ') }}</span>
+  </div>
+  <div class="line">
+    {{ c.sex or 'Child' }}, {{ c.age_years if c.age_years is not none else '?' }} years
+    {%- if c.disability %} &middot; with disability{% endif %}
+    &middot; {{ c.camp_report or 'camp unknown' }}
+  </div>
+  <div class="foot2">
+    <span class="ref">{{ c.ref }}</span> &middot;
+    {% if c.ctype == 'found' and c.holding_location %}at {{ c.holding_location }} &middot;{% endif %}
+    filed by {{ c.reporter }} &middot; {{ c.opened_at[:10] }}
+    {% if not c.pii_visible %} &middot; <span class="locked">details restricted</span>{% endif %}
+  </div>
+</a>
+{% else %}
+<div class="card"><p class="sub" style="margin:0">Nothing here. Change the filter, or file a new report.</p></div>
+{% endfor %}
+{% endblock %}

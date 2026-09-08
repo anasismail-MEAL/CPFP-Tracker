@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f4e79">
+<title>{% block title %}CPFP{% endblock %} &middot; CPFP Coordination</title>
+<link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+{% if user %}
+<header class="topbar">
+  <div class="brand">
+    <strong>CPFP</strong>
+    <span>Child Protection Focal Points &middot; CPSS Cox's Bazar</span>
+  </div>
+  <div class="who">
+    <span class="name">{{ user.full_name }}</span>
+    <span class="chip">{{ user.camp or 'CPSS' }}</span>
+    <a class="out" href="{{ url_for('logout') }}">Sign out</a>
+  </div>
+</header>
+<nav class="tabs">
+  <a href="{{ url_for('chat') }}"    class="{{ 'on' if request.endpoint == 'chat' }}">Chat</a>
+  <a href="{{ url_for('cases') }}"   class="{{ 'on' if request.endpoint in ('cases','case_detail','case_new') }}">Children</a>
+  <a href="{{ url_for('tasks') }}"   class="{{ 'on' if request.endpoint == 'tasks' }}">My tasks</a>
+  <a href="{{ url_for('reports_page') }}" class="{{ 'on' if request.endpoint == 'reports_page' }}">Reports</a>
+</nav>
+{% endif %}
+
+<main class="{% block mainclass %}wrap{% endblock %}">
+  {% with msgs = get_flashed_messages() %}
+    {% if msgs %}<div class="flash">{{ msgs|join(' ') }}</div>{% endif %}
+  {% endwith %}
+  {% block body %}{% endblock %}
+</main>
+
+<footer class="foot">
+  Prototype for CPSS review. Demonstration data only &mdash; no real child records.
+</footer>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("{{ url_for('static', filename='sw.js') }}");
+}
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

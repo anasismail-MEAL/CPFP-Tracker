@@ -1,0 +1,8 @@
+.cpfp_key
+*.sqlite3
+server.log
+__pycache__/
+*.pyc
+.venv/
+reference/
+*.xlsx

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block body %}
+<div class="inline" style="justify-content:space-between">
+  <div><h1>Monthly report</h1>
+  <p class="sub">{{ d.start }} to {{ d.end }} (exclusive) &mdash; the same period rule as the tracker workbook</p></div>
+  <a class="btn" href="{{ url_for('export_xlsx', year=d.year, month=d.month) }}">Download Excel</a>
+</div>
+
+<form class="card" method="get">
+  <div class="row">
+    <div><label for="month">Month</label>
+      <select id="month" name="month">
+        {% for m in range(1, 13) %}
+          <option value="{{ m }}" {{ 'selected' if m == d.month }}>
+            {{ ['January','February','March','April','May','June','July','August','September','October','November','December'][m-1] }}
+          </option>
+        {% endfor %}
+      </select></div>
+    <div><label for="year">Year</label>
+      <input id="year" name="year" type="number" value="{{ d.year }}" min="2024" max="2100"></div>
+    <div style="display:flex;align-items:flex-end"><button class="btn ghost" style="width:100%">Show</button></div>
+  </div>
+</form>
+
+<h2>Missing &amp; found children</h2>
+<div class="kpis">
+  <div class="kpi"><div class="v">{{ d.cases.opened }}</div><div class="l">Cases opened</div></div>
+  <div class="kpi good"><div class="v">{{ d.cases.reunified }}</div><div class="l">Children reunified</div></div>
+  <div class="kpi good"><div class="v">{{ d.cases.within_24h }}</div><div class="l">Within 24h (ToR target)</div></div>
+  <div class="kpi"><div class="v">{{ d.cases.median_hours if d.cases.median_hours is not none else '&ndash;'|safe }}</div><div class="l">Median hours to reunify</div></div>
+  <div class="kpi"><div class="v">{{ d.cases.still_open }}</div><div class="l">Still open</div></div>
+</div>
+
+{% if d.cases.by_camp %}
+<div class="scroll" style="margin-bottom:14px">
+  <table>
+    <thead><tr><th>Camp</th><th class="n">Reunified this month</th></tr></thead>
+    <tbody>
+      {% for camp, n in d.cases.by_camp %}
+        <tr><td>{{ camp }}</td><td class="n">{{ n }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<h2>By focal point</h2>
+<div class="scroll">
+  <table>
+    <thead><tr>
+      <th>Focal point</th><th>Agency</th><th>Camp</th>
+      <th class="n">Activities</th><th class="n">Children</th><th class="n">Adults</th><th class="n">Open follow-ups</th>
+    </tr></thead>
+    <tbody>
+      {% for p in d.people %}
+      <tr>
+        <td>{{ p.full_name }}{% if p.role == 'cpss_admin' %} <span class="locked">(CPSS)</span>{% endif %}</td>
+        <td>{{ p.agency }}</td><td>{{ p.camp or '&mdash;'|safe }}</td>
+        <td class="n">{{ p.activities }}</td><td class="n">{{ p.children }}</td>
+        <td class="n">{{ p.adults }}</td><td class="n">{{ p.open_followups }}</td>
+      </tr>
+      {% endfor %}
+      <tr style="font-weight:700;background:#eef2f7">
+        <td colspan="3">All focal points</td>
+        <td class="n">{{ d.totals.activities }}</td><td class="n">{{ d.totals.children }}</td>
+        <td class="n">{{ d.totals.adults }}</td><td class="n">{{ d.totals.open_followups }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<h2>Activity breakdown</h2>
+<div class="scroll">
+  <table>
+    <thead><tr><th>Activity type</th><th class="n">Entries</th><th class="n">Children</th><th class="n">Adults</th></tr></thead>
+    <tbody>
+      {% for a in d.activities %}
+        <tr><td>{{ a.k or '(not set)' }}</td><td class="n">{{ a.entries }}</td>
+          <td class="n">{{ a.children }}</td><td class="n">{{ a.adults }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2>Stakeholder / sector breakdown</h2>
+<div class="scroll">
+  <table>
+    <thead><tr><th>Stakeholder / sector</th><th class="n">Entries</th></tr></thead>
+    <tbody>
+      {% for s in d.stakeholders %}
+        <tr><td>{{ s.k or '(not set)' }}</td><td class="n">{{ s.entries }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

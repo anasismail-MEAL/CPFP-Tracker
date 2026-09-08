@@ -1,0 +1,25 @@
+# Render blueprint for the testing deployment.
+#
+# One web service, free plan, HTTPS terminated by Render. The disk is ephemeral, so
+# the database is rebuilt with demo data on every deploy -- which is correct for a
+# testing deployment and is the reason no real child record may be entered here.
+services:
+  - type: web
+    name: cpfp-tracker
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -c "import seed; seed.ensure()" && gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 60
+    healthCheckPath: /login
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.6"
+      # Generated once by Render and then held. Losing it makes existing encrypted
+      # records unreadable, which on an ephemeral test box is acceptable.
+      - key: CPFP_KEY
+        generateValue: true
+      - key: CPFP_SECRET
+        generateValue: true
+      - key: CPFP_HTTPS
+        value: "1"

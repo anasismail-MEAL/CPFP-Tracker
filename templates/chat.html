@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Chat{% endblock %}
+{% block body %}
+<div class="notice">
+  Group channel for all focal points. Anything about a specific child belongs on the
+  <a href="{{ url_for('cases') }}">Children</a> board &mdash; the monthly report is built from there,
+  not from chat.
+</div>
+<div class="stream" id="stream"></div>
+
+<form class="composer" id="composer" autocomplete="off">
+  <input id="body" placeholder="Message all focal points" maxlength="4000" required>
+  <button class="btn">Send</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const stream = document.getElementById("stream");
+let since = 0, firstLoad = true;
+
+function esc(s){ const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+function when(iso){
+  const d = new Date(iso), now = new Date();
+  const time = d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  return d.toDateString() === now.toDateString()
+    ? time : d.toLocaleDateString([], {day:"numeric", month:"short"}) + " " + time;
+}
+
+async function poll(){
+  try{
+    const res = await fetch("/api/messages?since=" + since);
+    const msgs = await res.json();
+    for(const m of msgs){
+      since = Math.max(since, m.id);
+      const el = document.createElement("div");
+      el.className = "msg" + (m.mine ? " mine" : "");
+      el.innerHTML = '<div class="meta"><b>' + esc(m.full_name) + "</b> &middot; " +
+                     esc(m.camp || m.agency || "CPSS") + " &middot; " + when(m.created_at) +
+                     '</div><p>' + esc(m.body) + "</p>";
+      stream.appendChild(el);
+    }
+    if(msgs.length){
+      // Only yank the view down if the reader is already at the bottom.
+      const atBottom = firstLoad ||
+        (window.innerHeight + window.scrollY >= document.body.offsetHeight - 220);
+      if(atBottom) window.scrollTo(0, document.body.scrollHeight);
+      firstLoad = false;
+    }
+  }catch(e){ /* offline: keep the last view and try again on the next tick */ }
+}
+
+document.getElementById("composer").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = document.getElementById("body");
+  const body = input.value.trim();
+  if(!body) return;
+  input.value = "";
+  await fetch("/api/messages", {
+    method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({body})
+  });
+  poll();
+});
+
+poll();
+setInterval(poll, 3000);   // ponytail: polling, not websockets
+</script>
+{% endblock %}

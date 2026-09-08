@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}New report{% endblock %}
+{% block body %}
+<h1>New child report</h1>
+<p class="sub">File a missing child, or a child found without their family.</p>
+
+<div class="notice">
+  Identifying details are encrypted and shown only to you, to focal points of the camps
+  involved, and to CPSS. Every time someone opens them it is recorded.
+</div>
+
+<form method="post">
+  <div class="card">
+    <h2 style="margin-top:0">The report</h2>
+    <div class="row">
+      <div>
+        <label for="ctype">Kind of report</label>
+        <select id="ctype" name="ctype" required>
+          <option value="missing">Missing &mdash; a child is missing from their family</option>
+          <option value="found">Found &mdash; a child found without their family</option>
+        </select>
+      </div>
+      <div>
+        <label for="camp_report">Camp reporting</label>
+        <select id="camp_report" name="camp_report">
+          {% for camp in camps %}
+            <option value="{{ camp }}" {{ 'selected' if camp == user.camp }}>{{ camp }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="camp_origin">Camp the child belongs to <span style="text-transform:none">(if known)</span></label>
+        <select id="camp_origin" name="camp_origin">
+          <option value="">Not known</option>
+          {% for camp in camps %}<option value="{{ camp }}">{{ camp }}</option>{% endfor %}
+        </select>
+      </div>
+      <div><label for="block">Block</label><input id="block" name="block" placeholder="e.g. D05"></div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="sex">Sex</label>
+        <select id="sex" name="sex"><option>Female</option><option>Male</option><option value="">Not known</option></select>
+      </div>
+      <div><label for="age_years">Age in years</label><input id="age_years" name="age_years" type="number" min="0" max="17" inputmode="numeric"></div>
+      <div>
+        <label for="disability">Disability</label>
+        <select id="disability" name="disability"><option value="">No / not known</option><option value="1">Child with a disability</option></select>
+      </div>
+    </div>
+    <label for="holding_location">Where the child is now <span style="text-transform:none">(found reports)</span></label>
+    <input id="holding_location" name="holding_location" placeholder="e.g. CODEC office, Camp-11">
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Identifying details &mdash; encrypted</h2>
+    <div class="row">
+      <div><label for="child_name">Child's name</label><input id="child_name" name="child_name"></div>
+      <div><label for="dob">Date of birth</label><input id="dob" name="dob" type="date"></div>
+    </div>
+    <div class="row">
+      <div><label for="father_name">Father's name</label><input id="father_name" name="father_name"></div>
+      <div><label for="mother_name">Mother's name</label><input id="mother_name" name="mother_name"></div>
+    </div>
+    <div class="row">
+      <div><label for="fcn">FCN</label><input id="fcn" name="fcn" inputmode="numeric"></div>
+      <div><label for="progress_id">Progress ID</label><input id="progress_id" name="progress_id" placeholder="STJ-00000000"></div>
+    </div>
+    <div class="row">
+      <div><label for="shelter_no">Shelter number</label><input id="shelter_no" name="shelter_no"></div>
+      <div><label for="contact_phone">Family contact</label><input id="contact_phone" name="contact_phone" inputmode="tel"></div>
+    </div>
+    <label for="cpims_case_id">CPIMS+ case ID <span style="text-transform:none">(if one exists)</span></label>
+    <input id="cpims_case_id" name="cpims_case_id" placeholder="Leave blank if not yet opened in CPIMS+">
+  </div>
+
+  <div class="inline">
+    <button class="btn">File report</button>
+    <a class="btn ghost" href="{{ url_for('cases') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
