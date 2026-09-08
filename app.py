@@ -124,7 +124,16 @@ def login():
             return redirect(request.args.get("next") or url_for("chat"))
         conn.close()
         flash("Wrong username or password.")
-    return render_template("login.html")
+
+    # Only advertise the demo credentials while demo accounts are actually open.
+    # Once the roster is imported they are retired, and this box disappears.
+    conn = db.connect()
+    demo = conn.execute(
+        """SELECT username FROM users
+           WHERE username NOT LIKE '%@%' AND active = 1 ORDER BY username"""
+    ).fetchall()
+    conn.close()
+    return render_template("login.html", demo=[r["username"] for r in demo])
 
 
 @app.route("/logout")

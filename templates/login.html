@@ -14,9 +14,17 @@
     <button class="btn" style="width:100%">Sign in</button>
   </form>
 </div>
+{% if demo %}
 <div class="notice">
-  <strong>Prototype.</strong> Demo accounts: <code>cpfp18</code>, <code>cpfp3</code>,
-  <code>cpfp11</code>, <code>cpfp20</code>, <code>cpss</code> &mdash; password
-  <code>demo1234</code>. All data is invented.
+  <strong>Prototype.</strong> Demo accounts:
+  {% for u in demo %}<code>{{ u }}</code>{{ ", " if not loop.last }}{% endfor %}
+  &mdash; password <code>demo1234</code>. All data is invented.
 </div>
+{% else %}
+<div class="notice">
+  <strong>Prototype.</strong> Sign in with your work email address. If this is your first
+  time, use the starting password you were given &mdash; you will be asked to choose your own.
+  All child records in this system are invented.
+</div>
+{% endif %}
 {% endblock %}

@@ -31,7 +31,8 @@ python app.py
 ```
 
 Then open <http://localhost:5000>. `seed.py` prints the demo accounts; the password for every
-one of them is `demo1234`.
+one of them is `demo1234`. They are shown on the sign-in page **only while they are active** —
+importing the real roster retires them and the box disappears.
 
 | Account | Person | Camp | Role |
 |---|---|---|---|
@@ -68,6 +69,11 @@ with their **email address** and a shared starting password. Re-running is safe:
 keyed on email, existing ones have their name, agency, camp and phone refreshed, and passwords
 are never touched. Add `--dry-run` to see what would happen, or `--retire-demo` to deactivate
 the demo accounts whose password is published in this file.
+
+**The demo accounts are retired automatically on a deployment.** `seed.ensure()` re-seeds them
+on every boot of an ephemeral host, so it retires them again as soon as it has imported the
+roster — otherwise `demo1234` would quietly come back to life on each redeploy. Locally, run
+`--retire-demo` once you no longer need them.
 
 Anyone created this way **must set their own password before reaching any page** — every route
 redirects to `/password` until they do.

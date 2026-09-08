@@ -235,8 +235,12 @@ def ensure():
         created, _ = import_roster.apply(
             conn, people, os.environ.get("CPFP_START_PASSWORD", import_roster.DEFAULT_PASSWORD)
         )
+        # Once real people can sign in, the demo accounts must not stay open -- their
+        # password is published in the README, and this runs on every boot.
+        retired = import_roster.retire_demo(conn)
         conn.close()
-        print("Roster: %d account(s) created, %d rejected." % (len(created), len(rejected)))
+        print("Roster: %d account(s) created, %d rejected, %d demo account(s) retired."
+              % (len(created), len(rejected), retired))
     else:
         print("No roster at %s -- demo accounts only." % roster)
     return True

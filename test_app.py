@@ -285,6 +285,22 @@ imported = conn2.execute(
 check("imported accounts must change their password", imported["must_change"] == 1)
 check("imported accounts are focal points, not admins", imported["role"] == "cpfp")
 
+n = import_roster.retire_demo(conn2)
+check("retiring deactivates the demo accounts", n >= 3)
+check("no short-username account stays active",
+      conn2.execute(
+          "SELECT COUNT(*) c FROM users WHERE username NOT LIKE '%@%' AND active = 1"
+      ).fetchone()["c"] == 0)
+check("email accounts are untouched",
+      conn2.execute(
+          "SELECT active FROM users WHERE username = 'good@example.org'"
+      ).fetchone()["active"] == 1)
+check("a retired account cannot sign in",
+      webapp.app.test_client().post(
+          "/login", data={"username": "c18", "password": "demo1234"}
+      ).status_code == 200)  # 200 = login page again, not a 302 into the app
+check("retiring twice changes nothing more", import_roster.retire_demo(conn2) == 0)
+
 conn.close()
 conn2.close()
 print("\n%d checks passed." % checks)

@@ -181,6 +181,19 @@ def apply(conn, people, password=DEFAULT_PASSWORD):
     return created, updated
 
 
+def retire_demo(conn):
+    """Deactivate the seeded demo accounts.
+
+    Their password is published in the README, so they must not stay open once real
+    people can sign in. Demo usernames are short names; real ones are email addresses.
+    """
+    cur = conn.execute(
+        "UPDATE users SET active = 0 WHERE username NOT LIKE '%@%' AND active = 1"
+    )
+    conn.commit()
+    return cur.rowcount
+
+
 def write_csv(people, out):
     fields = ["full_name", "email", "agency", "camp", "phone", "position", "role"]
     with open(out, "w", newline="", encoding="utf-8") as fh:
@@ -233,15 +246,7 @@ def main(argv=None):
     db.init_schema(conn)  # picks up must_change on an older database
     created, updated = apply(conn, good, args.password)
 
-    retired = 0
-    if args.retire_demo:
-        # The demo accounts' password is published in the README, so they should not
-        # stay open once real people can sign in.
-        cur = conn.execute(
-            "UPDATE users SET active = 0 WHERE username NOT LIKE '%@%' AND active = 1"
-        )
-        retired = cur.rowcount
-        conn.commit()
+    retired = retire_demo(conn) if args.retire_demo else 0
 
     camps = sorted({p["camp"] for p in good if p["camp"]})
     have = {r["val"] for r in conn.execute("SELECT val FROM ref_lists WHERE kind = 'camp'")}
